@@ -1,0 +1,107 @@
+{% extends 'app.html' %} {% block content %}
+<div class="col-md-10">
+  <div class="card">
+    <h2 class="text-center py-4">Available products</h2>
+    <div class="col-md-3">
+      <form onchange="this.submit()" method="get" class="m-lg-3">
+        <label class="text-muted"> filter by vendor</label>
+        <select name="filter" class="form-control">
+          <option selected disabled>Choose a vendor</option>
+          <option value="all">All</option>
+          {% for vendor in vendors %}
+          <option value="{{ vendor.id }}">{{ vendor.name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+
+    <div class="card-body">
+      <div class="row mb-4">
+        {% if total > 0 %}
+        <div class="ml-4 mb-4">
+          Total : R<span id="totalCost">0.00</span>
+          <a href="/my-orders" class="btn btn-secondary btn-sm float-end m-3"> My Orders</a>
+
+          <button
+            id="checkoutButton"
+            onclick="checkout('{{ csrf_token}}')"
+            class="btn btn-primary btn-sm float-end disabled m-3"
+          >
+            Checkout
+          </button>
+
+        </div>
+        {% for product in products %}
+        <div class="col-md-3 mb-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h4 class="text-capitalize">R{{ product.price }}</h4>
+              <h1 class="text-center">{{ product.name }}</h1>
+              <small class="float-end"
+                ><strong> vendor:</strong> {{ product.vendor.name}}
+              </small>
+            </div>
+            <div class="card-footer">
+              <button
+                class="btn btn-info shadow-sm"
+                onclick="addToCart({{ product.id }}, {{ product.price }})"
+                id="addToCart-{{ product.id }}"
+              >
+                add to cart
+              </button>
+              <button class="btn btn-secondary shadow-sm float-end" id="buyNow">
+                buy now
+              </button>
+            </div>
+          </div>
+        </div>
+        {% endfor %} {% else %}
+        <div class="col-md-12 p-5">
+          <div class="alert alert-warning">
+            <h3 class="text-center">No data</h3>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const myCart = [];
+  let totalCost = 0;
+
+  function addToCart(productId, price) {
+    if (myCart.indexOf(productId) === -1) {
+      myCart.push(productId);
+      totalCost += price;
+      $("#totalCost").text(totalCost);
+      $("#checkoutButton").removeClass("disabled");
+      $("#addToCart-" + productId)
+        .prop("disable", true)
+        .text("Added to cart")
+        .addClass("btn-success")
+        .removeClass("btn-info");
+    } else {
+      return false;
+    }
+  }
+
+  function checkout(token) {
+    if (totalCost > 0) {
+      const data = {};
+      data.product_ids = JSON.stringify(myCart);
+      data.csrfmiddlewaretoken = token;
+      data.total = totalCost;
+      $.post("/create-order", data)
+        .then(function (response) {
+          console.log(response);
+        })
+        .catch(function (error) {
+          console.log(error.responseText);
+        });
+    } else {
+      return false;
+    }
+  }
+</script>
+{% endblock %}
